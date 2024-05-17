@@ -1,0 +1,43 @@
+pipeline{
+    
+    tools {
+        maven "maven3.9.6"
+    }
+
+    agent any
+
+    environment {
+        registry = "659961926211.dkr.ecr.us-east-1.amazonaws.com/may15-demo"
+
+
+    }
+
+    stages{
+        stage("checkoutfromscm"){
+            steps {
+                checkout scmGit(branches: [[name: '*/may15']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/phitabs24/nextcloud-application-docker-pipeline.git']])
+
+
+            }
+        }
+        stage ("Build Image") {
+            steps {
+                script {
+                    docker image = docker.build registry
+                    dockerImage.tag("$BUILD_NUMBER")
+                }
+            }
+        }
+
+        stage("Push to ECR") {
+            steps {
+                script {
+                    sh 'aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 659961926211.dkr.ecr.us-east-1.amazonaws.com'
+                    sh 'docker push 659961926211.dkr.ecr.us-east-1.amazonaws.com/may15-demo:$BUILD_NUMBER'
+                }
+
+            }
+        }
+    }
+
+}
